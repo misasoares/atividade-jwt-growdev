@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider                = "postgresql"
+  url                     = env("DATABASE_URL")
+}
+
+// Definicao de uma tabela
+model Aluno {
+  id String @id @default(uuid()) @db.Uuid
+  nome String @db.VarChar(60)
+  email String @db.VarChar(50) @unique
+  idade Int?
+  password String
+  tipo String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relation com avalicao (1-N): um aluno possui 0 ou N avaliacoes
+  avaliacoes Avaliacao[]
+
+  // Relation com turma (N-N): um aluno possui 0 ou N turmas (através da tabela auxiliar Matricula)
+  turmas Matricula[]
+
+  // Relation com projeto
+  projetos Projeto[]
+
+  // define o nome da tabela (o default é o nome do model com inicial em maiusc.)
+  @@map("aluno")
+}
+
+model Avaliacao {
+  id String @id @default(uuid()) @db.Uuid
+  disciplina String @db.VarChar(30)
+  nota Decimal @db.Decimal(4,2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Campo que armazena a FK para Aluno
+  idAluno String @db.Uuid @map("id_aluno")
+
+  // Relation com aluno (1-N): uma avaliacao é de apenas 1 aluno
+  // (precisa ter o campo avaliacoes[] em Aluno)
+  aluno Aluno @relation(fields: [idAluno], references: [id])
+
+  // define o nome da tabela (o default é o nome do model com inicial em maiusc.)
+  @@map("avaliacao")
+}
+
+model Turma {
+  id String @id @default(uuid()) @db.Uuid
+  programa String @db.VarChar(30)
+  edicao Int
+  maxAlunos Int? @map("max_alunos")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relation com aluno (N-N): uma turma possui 0 ou N alunos (através da tabela auxiliar Matricula)
+  alunos Matricula[]
+
+  // define o nome da tabela (o default é o nome do model com inicial em maiusc.)
+  @@map("turma")
+}
+
+// Tabela auxiliar para a relation N-N entre aluno e turma
+model Matricula {
+  aluno Aluno @relation(fields: [alunoId], references: [id])
+  alunoId String @db.Uuid @map("id_aluno")
+
+  Turma Turma @relation(fields: [turmaId], references: [id])
+  turmaId String @db.Uuid @map("turma_id")
+
+  ativo Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([alunoId, turmaId])
+}
+
+model Projeto {
+  id String @id @default(uuid()) @db.Uuid 
+  descricao String
+  ferramenta String
+  status String @db.Char(1)
+
+  alunoId String @db.Uuid @map("id_aluno")
+  aluno Aluno @relation(fields: [alunoId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at") 
+}
